@@ -1,0 +1,8 @@
+{
+  "name": "CodeHumanizer - AI Code Detector & Production Sanitizer",
+  "description": "Analyze code for AI-generated fingerprints, strip telltale artifacts, remove excessive formatting bloat, and produce clean, humanized, production-ready code.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
