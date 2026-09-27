@@ -3,6 +3,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import { exec } from 'child_process';
+import util from 'util';
+
+const execAsync = util.promisify(exec);
 
 dotenv.config();
 
@@ -18,7 +22,7 @@ app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 // In-memory or env NVIDIA API key
 let customNvidiaApiKey = process.env.NVIDIA_API_KEY || '';
 
-// Active supported NVIDIA models (Updated to active production models on NVIDIA NIM)
+// Active supported NVIDIA models
 export const ACTIVE_NVIDIA_MODELS = [
   { id: 'deepseek-ai/deepseek-r1', name: 'NVIDIA DeepSeek R1 (Recommended Reasoning & Coding)' },
   { id: 'qwen/qwen2.5-coder-32b-instruct', name: 'NVIDIA Qwen 2.5 Coder 32B (Specialized Code Clean)' },
@@ -52,6 +56,49 @@ app.get('/api/health', (req, res) => {
 });
 
 /**
+ * Push to GitHub via Personal Access Token
+ */
+app.post('/api/github/push', async (req, res) => {
+  try {
+    const { token, repoUrl } = req.body;
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: 'GitHub Personal Access Token is required' });
+    }
+
+    const cleanToken = token.trim();
+    const targetRepo = repoUrl && repoUrl.trim()
+      ? repoUrl.trim()
+      : 'https://github.com/BanshwarTech/CodeHumanizer---AI-Code-Detector-Production-Sanitizer.git';
+
+    // Parse repo URL to construct authenticated git URL
+    // e.g. https://ghp_xxx@github.com/BanshwarTech/CodeHumanizer...
+    const urlWithoutProtocol = targetRepo.replace(/^https?:\/\//, '');
+    const authedUrl = `https://${cleanToken}@${urlWithoutProtocol}`;
+
+    // Ensure git repository is initialized and commited
+    await execAsync('git config user.name "alekhbanshwar" || true');
+    await execAsync('git config user.email "alekhbanshwar2000@gmail.com" || true');
+    await execAsync('git add .');
+    await execAsync('git commit -m "Update CodeHumanizer: AI Code Detector & Production Sanitizer" || true');
+    await execAsync('git branch -M main');
+
+    // Push using the authenticated URL
+    const { stdout, stderr } = await execAsync(`git push -u "${authedUrl}" main --force`);
+
+    return res.json({
+      success: true,
+      message: 'Successfully pushed all code to GitHub repository!',
+      output: stdout || stderr,
+    });
+  } catch (error: any) {
+    console.error('Git push error:', error);
+    return res.status(500).json({
+      error: error.message || 'Failed to push to GitHub',
+    });
+  }
+});
+
+/**
  * Endpoint to save / test custom NVIDIA API key directly from UI
  */
 app.post('/api/config/nvidia', async (req, res) => {
@@ -64,7 +111,6 @@ app.post('/api/config/nvidia', async (req, res) => {
 
     const trimmedKey = apiKey.trim();
 
-    // Verify key with a fast test call to NVIDIA NIM API
     const testResp = await fetch('https://integrate.api.nvidia.com/v1/models', {
       headers: {
         Authorization: `Bearer ${trimmedKey}`,
@@ -97,7 +143,7 @@ app.post('/api/config/nvidia', async (req, res) => {
 });
 
 /**
- * Helper to call NVIDIA NIM OpenAI-compatible API with automatic fallback list if a model has retired
+ * Helper to call NVIDIA NIM OpenAI-compatible API
  */
 async function callNvidiaAI(
   systemPrompt: string,
@@ -109,7 +155,6 @@ async function callNvidiaAI(
     throw new Error('NVIDIA API Key is missing');
   }
 
-  // Model fallback candidate list in case one retired (like llama-3.3-70b-instruct)
   const candidateModels = [
     modelName,
     'deepseek-ai/deepseek-r1',
@@ -118,7 +163,6 @@ async function callNvidiaAI(
     'nvidia/llama-3.1-nemotron-70b-instruct',
   ];
 
-  // Filter unique valid candidates (remove the deprecated llama-3.3)
   const safeCandidates = Array.from(new Set(candidateModels)).filter(
     (m) => m !== 'meta/llama-3.3-70b-instruct'
   );
@@ -146,7 +190,6 @@ async function callNvidiaAI(
       });
 
       if (response.status === 410 || response.status === 404) {
-        // Model retired or not found on NIM, try next candidate
         console.warn(`NVIDIA model ${candidate} returned status ${response.status}, trying fallback model...`);
         lastError = new Error(`Model ${candidate} is no longer available on NVIDIA NIM.`);
         continue;
@@ -163,7 +206,7 @@ async function callNvidiaAI(
     } catch (err: any) {
       lastError = err;
       if (err.message && (err.message.includes('410') || err.message.includes('404') || err.message.includes('end of life'))) {
-        continue; // Try next candidate
+        continue;
       }
       throw err;
     }
@@ -256,7 +299,6 @@ You must respond ONLY with valid JSON with the following structure:
       usedProvider = 'gemini';
     }
 
-    // Clean any markdown block wrap if returned
     const cleanJson = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
     const parsed = JSON.parse(cleanJson);
     return res.json({ success: true, data: parsed, provider: usedProvider });

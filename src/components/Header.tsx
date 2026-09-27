@@ -1,16 +1,18 @@
 import React from 'react';
-import { Terminal, Shield, Zap, Sparkles, Globe, Cpu } from 'lucide-react';
+import { Terminal, Shield, Zap, Sparkles, Globe, Cpu, GitBranch } from 'lucide-react';
 
 interface HeaderProps {
   hasNvidiaKey: boolean;
   onOpenNvidiaModal: () => void;
   selectedNvidiaModel?: string;
+  onOpenGitHubModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   hasNvidiaKey,
   onOpenNvidiaModal,
   selectedNvidiaModel,
+  onOpenGitHubModal,
 }) => {
   return (
     <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur sticky top-0 z-40">
@@ -38,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden lg:flex items-center gap-4 text-slate-400 mr-2">
             <div className="flex items-center gap-1.5">
               <Globe className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Any Language & Project</span>
+              <span>Any Language</span>
             </div>
             <span>·</span>
             <div className="flex items-center gap-1.5">
@@ -46,6 +48,16 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Auto-Detect</span>
             </div>
           </div>
+
+          {/* Push to GitHub Button */}
+          <button
+            onClick={onOpenGitHubModal}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 transition-all text-xs font-medium"
+            title="Push this project to BanshwarTech/CodeHumanizer repository"
+          >
+            <GitBranch className="h-3.5 w-3.5 text-purple-400" />
+            <span className="hidden sm:inline">Push to</span> GitHub
+          </button>
 
           {/* NVIDIA API Key Setup Button */}
           <button
@@ -55,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
                 : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-emerald-500/40 hover:text-white'
             }`}
-            title="Configure NVIDIA API Key (Llama 3.3, DeepSeek R1, Mistral)"
+            title="Configure NVIDIA API Key (DeepSeek R1, Qwen 2.5, Mistral)"
           >
             <div className={`w-2 h-2 rounded-full ${hasNvidiaKey ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
             <Cpu className="h-3.5 w-3.5 text-emerald-400" />

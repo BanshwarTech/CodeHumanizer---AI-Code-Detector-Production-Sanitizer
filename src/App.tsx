@@ -4,6 +4,7 @@ import { Toolbar } from './components/Toolbar';
 import { CodeView } from './components/CodeView';
 import { AnalysisBreakdown } from './components/AnalysisBreakdown';
 import { NvidiaSettingsModal } from './components/NvidiaSettingsModal';
+import { GitHubPushModal } from './components/GitHubPushModal';
 import { SAMPLE_CODES, CodeSample } from './data/sampleCodes';
 import {
   analyzeCodeLocal,
@@ -27,11 +28,15 @@ export default function App() {
   const [isDeepLoading, setIsDeepLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // NVIDIA API & Model State (Default to active DeepSeek R1)
+  // NVIDIA API & Model State
   const [isNvidiaModalOpen, setIsNvidiaModalOpen] = useState(false);
   const [hasNvidiaKey, setHasNvidiaKey] = useState(false);
   const [selectedNvidiaModel, setSelectedNvidiaModel] = useState('deepseek-ai/deepseek-r1');
   const [usedProvider, setUsedProvider] = useState<string>('gemini');
+
+  // GitHub Push Modal State
+  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
+  const targetGitHubRepo = 'https://github.com/BanshwarTech/CodeHumanizer---AI-Code-Detector-Production-Sanitizer.git';
 
   const [aiAnalysis, setAiAnalysis] = useState<AnalysisResult | null>(null);
   const [installationGuide, setInstallationGuide] = useState<{
@@ -99,7 +104,7 @@ export default function App() {
     showToast(`Loaded "${sample.name}" — Auto-detected ${sample.language.toUpperCase()}`);
   };
 
-  // Handle Raw Code Change (User typing or pasting code)
+  // Handle Raw Code Change
   const handleCodeChange = (newCode: string) => {
     setRawCode(newCode);
     const result = sanitizeCodeLocal(newCode, options);
@@ -143,7 +148,7 @@ export default function App() {
     );
   };
 
-  // Deep AI Humanize & Harden (Supports both NVIDIA NIM & Gemini)
+  // Deep AI Humanize & Harden
   const handleDeepHumanize = async () => {
     setIsDeepLoading(true);
     try {
@@ -252,6 +257,13 @@ export default function App() {
         </div>
       )}
 
+      {/* GitHub Push Modal */}
+      <GitHubPushModal
+        isOpen={isGitHubModalOpen}
+        onClose={() => setIsGitHubModalOpen(false)}
+        repoUrl={targetGitHubRepo}
+      />
+
       {/* NVIDIA Settings Modal */}
       <NvidiaSettingsModal
         isOpen={isNvidiaModalOpen}
@@ -270,6 +282,7 @@ export default function App() {
         hasNvidiaKey={hasNvidiaKey}
         onOpenNvidiaModal={() => setIsNvidiaModalOpen(true)}
         selectedNvidiaModel={selectedNvidiaModel}
+        onOpenGitHubModal={() => setIsGitHubModalOpen(true)}
       />
 
       {/* Main Content Area */}
